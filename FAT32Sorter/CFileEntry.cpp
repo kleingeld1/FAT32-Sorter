@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "CFileEntry.h"
 
 CFileEntry::CFileEntry(FATDirEntry aDirEntry, LFNEntry* aLFNEntries, WORD aNumLFNEntries)

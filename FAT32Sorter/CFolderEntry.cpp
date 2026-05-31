@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "CFolderEntry.h"
 
 int CFolderEntry::g_runningNum = 0;
@@ -115,8 +115,9 @@ bool CFolderEntry::writeData()
 		dwCurrPos += (*recycleIter)->getEntrySize();
 	}
 
-	TCHAR* name = getName();
-	_tprintf(_T("Flushing the data for folder %s\n"), name);
+	WCHAR* name = getName();
+	std::string nameUtf8 = wideToUtf8(name);
+	printf("Flushing the data for folder %s\n", nameUtf8.c_str());
 	delete[] name;
 
 	bool success = CVolumeAccess::getInstance()->writeChainedClusters(getFirstClusterInDataChain(), buffer, dwTotalSize);
@@ -124,8 +125,9 @@ bool CFolderEntry::writeData()
 
 	if (!success)
 	{
-		TCHAR* name = getName();
-		_tprintf(_T("Error while flushing the data to the device. Curr Folder: %s\n"), name);
+		WCHAR* name = getName();
+		std::string nameUtf8 = wideToUtf8(name);
+		printf("Error while flushing the data to the device. Curr Folder: %s\n", nameUtf8.c_str());
 		delete[] name;
 		return false;
 	}
@@ -151,13 +153,14 @@ void CFolderEntry::load()
 	// First - Gets the size of the data
 	if (!CVolumeAccess::getInstance()->readChainedClusters(getFirstClusterInDataChain(),NULL, &dwChainedClustersSizeBytes))
 	{
-		printf("Couldn't load the folder information for \"%s\", Code: 0x%X\n", m_data.DIR_Name, GetLastError());
+		printf("Couldn't load the folder information for \"%s\", Code: 0x%lX\n", m_data.DIR_Name, GetLastError());
 	}
 	else if (dwChainedClustersSizeBytes == 0)
 	{
 		// The size is 0 if there's a corruption in the folder
-		TCHAR* name = getName();
-		_tprintf(_T("The folder \"%s\" is probably corrupted, because no data was found on this folder\n"), name);
+		WCHAR* name = getName();
+		std::string nameUtf8 = wideToUtf8(name);
+		printf("The folder \"%s\" is probably corrupted, because no data was found on this folder\n", nameUtf8.c_str());
 		delete[] name;
 	}
 	else
@@ -165,7 +168,7 @@ void CFolderEntry::load()
 		BYTE* bData = new BYTE[dwChainedClustersSizeBytes];
 		if (!CVolumeAccess::getInstance()->readChainedClusters(getFirstClusterInDataChain(),bData, &dwChainedClustersSizeBytes))
 		{
-			printf("Couldn't load the folder's content for \"%s\", Code: 0x%X\n", m_data.DIR_Name, GetLastError());
+			printf("Couldn't load the folder's content for \"%s\", Code: 0x%lX\n", m_data.DIR_Name, GetLastError());
 			delete[] bData;
 		}
 		else
@@ -248,7 +251,8 @@ void CFolderEntry::load()
 				if (!(*foldersIter)->isDeleted())
 				{
 					WCHAR* name = (*foldersIter)->getName() ;
-					wprintf(L"Loading all folder's \"%s\" Sub items..\n", name);
+					std::string nameUtf8 = wideToUtf8(name);
+					printf("Loading all folder's \"%s\" sub items..\n", nameUtf8.c_str());
 					delete[] name;
 
 					(*foldersIter)->load();
@@ -307,7 +311,7 @@ bool compareEntries( CEntry* o1, CEntry* o2)
 	WCHAR* o2Name = o2->getName();
 
 	// Returns "true" if the entries are in the right order (o1 should be before o2)
-	bool ret = (_wcsicmp(o1Name, o2Name) <= 0);
+	bool ret = (compareWideCaseInsensitive(o1Name, o2Name) <= 0);
 
 	delete[] o1Name;
 	delete[] o2Name;
@@ -338,17 +342,16 @@ void CFolderEntry::sortEntries()
 // The running num is used to mark every folder with it's index in the tree (Pre-Ordered)
 void CFolderEntry::exportToFile(FILE* aFileStream, int aCurrDepth)
 {
-	WCHAR* indent = new WCHAR[3*aCurrDepth+1];
-	indent[3*aCurrDepth] = L'\0';
-	_wcsset_s(indent, 3*aCurrDepth+1, L'-');
+	std::string indent(3*aCurrDepth, '-');
 
 	for (vector<CFolderEntry*>::iterator foldersIter = m_folders.begin();
 		foldersIter != m_folders.end();
 		foldersIter++)
 	{
 		WCHAR* currName = (*foldersIter)->getName();
+		std::string currNameUtf8 = wideToUtf8(currName);
 		
-		fwprintf_s(aFileStream, L"|---%s [%d|%s]\n", indent, ++CFolderEntry::g_runningNum, currName);			
+		fprintf(aFileStream, "|---%s [%d|%s]\n", indent.c_str(), ++CFolderEntry::g_runningNum, currNameUtf8.c_str());
 		delete[] currName;
 
 		// Read this folder's sub-items 
@@ -360,13 +363,10 @@ void CFolderEntry::exportToFile(FILE* aFileStream, int aCurrDepth)
 		filesIter++)
 	{
 		WCHAR* currName = (*filesIter)->getName();
-		fwprintf_s(aFileStream, L"|---%s %s\n", indent, currName);			
+		std::string currNameUtf8 = wideToUtf8(currName);
+		fprintf(aFileStream, "|---%s %s\n", indent.c_str(), currNameUtf8.c_str());
 		delete[] currName;
 	}
-
-
-	if (indent != NULL)
-		delete[] indent;
 }
 
 bool CFolderEntry::dumpData(ofstream* aFile)
@@ -375,14 +375,16 @@ bool CFolderEntry::dumpData(ofstream* aFile)
 	
 	if (!CVolumeAccess::getInstance()->readChainedClusters(getFirstClusterInDataChain(), NULL, &sizeOfData))
 	{
-		_tprintf(_T("Error accessing the device to read cluster %d info. Error Code: 0x%2X"), getFirstClusterInDataChain(), GetLastError());
+		printf("Error accessing the device to read cluster %lu info. Error Code: 0x%2lX",
+			   static_cast<unsigned long>(getFirstClusterInDataChain()), GetLastError());
 		return false;
 	}
 	// The size of data is 0 only if the folder is corrpted
 	else if (sizeOfData == 0)
 	{
-		TCHAR* name = getName();
-		_tprintf(_T("The folder \"%s\" is probably corrupted, because no data was found on this folder\n"), name);
+		WCHAR* name = getName();
+		std::string nameUtf8 = wideToUtf8(name);
+		printf("The folder \"%s\" is probably corrupted, because no data was found on this folder\n", nameUtf8.c_str());
 		delete[] name;
 
 		// Ignore it..
@@ -394,7 +396,8 @@ bool CFolderEntry::dumpData(ofstream* aFile)
 		
 		if (!CVolumeAccess::getInstance()->readChainedClusters(getFirstClusterInDataChain(), data, &sizeOfData))
 		{
-			_tprintf(_T("Error accessing the device to read cluster %d's data. Error Code: 0x%2X"), getFirstClusterInDataChain(), GetLastError());
+			printf("Error accessing the device to read cluster %lu's data. Error Code: 0x%2lX",
+				   static_cast<unsigned long>(getFirstClusterInDataChain()), GetLastError());
 			delete[] data;
 			return false;
 		}

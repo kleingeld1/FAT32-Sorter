@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "CRootFolder.h"
 
 CRootFolder::CRootFolder()
@@ -14,11 +14,11 @@ DWORD CRootFolder::getFirstClusterInDataChain()
 WCHAR* CRootFolder::getName()
 {
 	WCHAR* ret = new WCHAR[5];
-	wcscpy_s(ret, 5, L"ROOT");
+	wcscpy(ret, L"ROOT");
 	return ret;
 }
 
-bool CRootFolder::dumpDirTable(TCHAR *aFileName)
+bool CRootFolder::dumpDirTable(const char* aFileName)
 {
 	ofstream file(aFileName,ios::binary | ios::out);
 	bool ret = dumpData(&file);

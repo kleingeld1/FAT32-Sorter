@@ -7,20 +7,20 @@ class CFileSystem
 private:
 	CRootFolder*	m_rootDir;
 public:
-	CFileSystem(TCHAR* aDriveLetter);
+	CFileSystem(const char* aDriveLetter);
 	~CFileSystem(void);
 
 	bool initFDT();
 	void sort();
 	void flushDataToDevice();
-	void exportFoldersList(TCHAR* aFileName);
-	void changeDriveLetter(TCHAR* aDriveLetter);
-	TCHAR* getCurrentDriveLetter();
+	void exportFoldersList(const char* aFileName);
+	void changeDriveLetter(const char* aDriveLetter);
+	const char* getCurrentDriveLetter();
 
 	// Backup function for the files table
-	void dumpFilesTable(TCHAR* aFileName);
-	void loadFilesTable(TCHAR* aFileName);
+	void dumpFilesTable(const char* aFileName);
+	void loadFilesTable(const char* aFileName);
 
 	// Dumping the FAT tables to files
-	void dumpFatsTable(TCHAR* aDestFolder);
+	void dumpFatsTable(const char* aDestFolder);
 };

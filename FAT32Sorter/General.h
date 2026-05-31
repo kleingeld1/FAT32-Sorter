@@ -60,4 +60,6 @@ bool isLFNEntry(FATDirEntryUn aEntryToCheck);
 bool isFolderEntry(FATDirEntryUn aEntryToCheck);
 bool isSpecialEntry(FATDirEntryUn aEntryToCheck);
 bool isDeletedEntry(FATDirEntry aEntryToCheck);
-	
+
+std::string wideToUtf8(const WCHAR* aValue);
+int compareWideCaseInsensitive(const WCHAR* aLeft, const WCHAR* aRight);

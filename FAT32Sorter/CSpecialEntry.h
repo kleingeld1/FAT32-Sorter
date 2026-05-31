@@ -1,5 +1,5 @@
 #pragma once
-#include "centry.h"
+#include "CEntry.h"
 
 class CSpecialEntry :
 	public CEntry

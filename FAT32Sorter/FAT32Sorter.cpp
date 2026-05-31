@@ -13,96 +13,97 @@
 #define SORT 5
 #define EXIT 6
 
+#if defined(_WIN32)
+static const char* DEFAULT_VOLUME = "F";
+#else
+static const char* DEFAULT_VOLUME = "";
+#endif
 
-
-
-TCHAR* getString(TCHAR* line, int size);
+char* getString(char* line, int size);
 bool getNum(int *result);
 
-int menu(TCHAR* aCurrDriveLetter)
+int menu(const char* aCurrDriveLetter)
 {
 	int userPick = -1;
 
-	_tprintf(_T("\n\n\t**************************************************\n"));
-	_tprintf(_T("\n\t\t-= FAT Sorter =-\n"));
-	_tprintf(_T("\t1. Choose drive (Current is \"%s\")\n"), aCurrDriveLetter);
-	_tprintf(_T("\t2. Dump files table (Backup)\n"));
-	_tprintf(_T("\t3. Load file table from file (Recover)\n"));
-	_tprintf(_T("\t4. Export Folders list\n"));
-	_tprintf(_T("\t5. Sort the FAT Table\n"));
-	_tprintf(_T("\t6. Exit\n"));
-	_tprintf(_T("\n\nEnter your choise: "));
+	printf("\n\n\t**************************************************\n");
+	printf("\n\t\t-= FAT Sorter =-\n");
+	printf("\t1. Choose volume (Current is \"%s\")\n", aCurrDriveLetter);
+	printf("\t2. Dump files table (Backup)\n");
+	printf("\t3. Load file table from file (Recover)\n");
+	printf("\t4. Export Folders list\n");
+	printf("\t5. Sort the FAT Table\n");
+	printf("\t6. Exit\n");
+	printf("\n\nEnter your choice: ");
 
 	bool success = getNum(&userPick);
 	while (!success)
 	{
-		_tprintf(_T("Enter your choise: "));
+		printf("Enter your choice: ");
 		success = getNum(&userPick);
 	}
 	
 	return userPick;
 }
 
-void backupFileName(TCHAR* aFileName)
+void backupFileName(char* aFileName)
 {
-	    time_t ltime;
-	    struct tm Tm;
-	 
-	    ltime=time(NULL);
-	    localtime_s(&Tm, &ltime);
-	 
-		_stprintf_s(aFileName, 20, _T("%04d%02d%02d_%02d%02d%02d.dat"),
-	            Tm.tm_year+1900,
-	            Tm.tm_mon+1,
-	            Tm.tm_mday,
-	            Tm.tm_hour,
-	            Tm.tm_min,
-	            Tm.tm_sec);
+	time_t ltime;
+	struct tm Tm;
+
+	ltime=time(NULL);
+#if defined(_WIN32)
+	localtime_s(&Tm, &ltime);
+#else
+	localtime_r(&ltime, &Tm);
+#endif
+
+	snprintf(aFileName, 20, "%04d%02d%02d_%02d%02d%02d.dat",
+			Tm.tm_year+1900,
+			Tm.tm_mon+1,
+			Tm.tm_mday,
+			Tm.tm_hour,
+			Tm.tm_min,
+			Tm.tm_sec);
 }
 
-
-TCHAR* getString(TCHAR *line, int size)
+char* getString(char *line, int size)
 {
-	if (_fgetts(line, size, stdin) )
+	if (fgets(line, size, stdin) )
 	{
-		TCHAR* newline = _tcschr(line, '\n'); /* check for trailing '\n' */
+		char* newline = strchr(line, '\n');
 		if ( newline )
 		{
-			*newline = '\0'; /* overwrite the '\n' with a terminating null */
+			*newline = '\0';
 		}
 	}
 	return line;
 }
 
-
 bool getNum(int *result)
 {
 	char *end, buff [ 13 ];
 	
-	fgets(buff, sizeof buff, stdin);
+	if (fgets(buff, sizeof buff, stdin) == NULL)
+		return false;
 	*result = strtol(buff, &end, 10);
 	return !isspace(*buff) && end != buff && (*end == '\n' || *end == '\0');
 }
 
-bool areYouSureMsg(TCHAR* text)
+bool areYouSureMsg(const char* text)
 {
-	TCHAR answer[2];
-	_tprintf(text);
-	getString(answer,2);
+	char answer[8];
+	printf("%s", text);
+	getString(answer, sizeof(answer));
 	return (answer[0]=='y' || answer[0]=='Y');
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
+	setlocale(LC_ALL, "");
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF ); 
 
-	TCHAR* defaultDriveLetter = new TCHAR[2];
-
-	if (argc >= 2)
-		_tcscpy_s(defaultDriveLetter, 2, argv[1]);
-	else
-		_tcscpy_s(defaultDriveLetter, 2, _T("F"));
-
+	const char* defaultDriveLetter = (argc >= 2) ? argv[1] : DEFAULT_VOLUME;
 	CFileSystem fatFileSystem(defaultDriveLetter);
 	
 	int choice = -1;
@@ -112,7 +113,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		overrideMenu = true;
 		
-		if (_tcscmp(argv[2], _T("sort")) == 0)
+		if (strcmp(argv[2], "sort") == 0)
 		{
 			choice = SORT;
 		}
@@ -126,64 +127,62 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		do 
 		{
-			_tprintf(_T("\n\n"));
+			printf("\n\n");
 			switch (choice)
 			{
 				case (DRIVE_CHOOSE):
 				{
-					TCHAR* drive = new TCHAR[2];
+					char drive[1024];
 				
-					_tprintf(_T("Please write the drive letter of the FAT32 drive (E, F etc.): "));
+#if defined(_WIN32)
+					printf("Please write the drive letter or volume path of the FAT32 drive (E, F, \\\\.\\F: etc.): ");
+#else
+					printf("Please write the FAT32 device or image path (/dev/disk2s1, /dev/sdb1, disk.img etc.): ");
+#endif
 					do{
-						getString(drive,2);
-					} while (_tccmp(drive, _T("")) == 0);
+						getString(drive, sizeof(drive));
+					} while (strcmp(drive, "") == 0);
 
-					_tprintf(_T("Selected Drive is: %s\n"), drive);
+					printf("Selected volume is: %s\n", drive);
 
 					fatFileSystem.changeDriveLetter(drive);
 					break;
 				}
 				case(DUMP_TABLES):
 				{
-					fatFileSystem.dumpFilesTable(_T("dirs.dat"));
+					fatFileSystem.dumpFilesTable("dirs.dat");
 					break;
 				}
 				case (LOAD_TABLES):
 				{
-					if (areYouSureMsg(_T("Are you sure you want to recover the files' table from \"dirs.dat\" (y/n) ? ")))
+					if (areYouSureMsg("Are you sure you want to recover the files' table from \"dirs.dat\" (y/n) ? "))
 					{
-						fatFileSystem.loadFilesTable(_T("dirs.dat"));
+						fatFileSystem.loadFilesTable("dirs.dat");
 					}
 					break;
 				}
 				case (EXPORT_LIST):
 				{
-					fatFileSystem.exportFoldersList(_T("FilesList.txt"));
+					fatFileSystem.exportFoldersList("FilesList.txt");
 					break;
 				}
 				case (SORT):
 				{
-					//bool areYouSure = false;
-					//if (overrideMenu) 
-					//	areYouSure = true;
-					//else
-	//					areYouSure = ;
-
-					if (overrideMenu || areYouSureMsg(_T("Are you sure you want to sort the entire files' table (backup will be saved) [y/n] ? ")))
+					if (overrideMenu || areYouSureMsg("Are you sure you want to sort the entire files' table (backup will be saved) [y/n] ? "))
 					{			
 						if (fatFileSystem.initFDT())
 						{
-							// Backup the current table
-							TCHAR backupFile[20];
+							// Backup the current table.
+							char backupFile[20];
 							backupFileName(backupFile);
 							fatFileSystem.dumpFilesTable(backupFile);
 
 							fatFileSystem.sort();
 							fatFileSystem.flushDataToDevice();	
-							_tprintf(_T("\n\t***************************************************************\n"));
-							_tprintf(_T("\tBackup data was saved to \"%s\". \n"), backupFile);
-							_tprintf(_T("\tTo recover - rename to \"dirs.dat\" and apply option number %d"), LOAD_TABLES);
-							_tprintf(_T("\n\t***************************************************************\n"));
+							printf("\n\t***************************************************************\n");
+							printf("\tBackup data was saved to \"%s\". \n", backupFile);
+							printf("\tTo recover - rename to \"dirs.dat\" and apply option number %d", LOAD_TABLES);
+							printf("\n\t***************************************************************\n");
 						}
 					}
 					break;
@@ -194,7 +193,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 				default:
 				{
-					_tprintf(_T("Option not exist, try again..\n"));
+					printf("Option does not exist, try again..\n");
 					break;
 				}
 			}
@@ -203,4 +202,3 @@ int _tmain(int argc, _TCHAR* argv[])
 	
 	return 0;
 }
-

@@ -1,9 +1,7 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "CFileSystem.h"
-#include <io.h>
-#include <fcntl.h>
 
-CFileSystem::CFileSystem(TCHAR* aDriveLetter)
+CFileSystem::CFileSystem(const char* aDriveLetter)
 {
 	CVolumeAccess::setWorkingDriveLetter(aDriveLetter);
 	m_rootDir = NULL;
@@ -15,18 +13,24 @@ CFileSystem::~CFileSystem(void)
 	CVolumeAccess::setWorkingDriveLetter(NULL);
 
 	if (m_rootDir != NULL)
+	{
 		delete m_rootDir;
+		m_rootDir = NULL;
+	}
 }
 
 bool CFileSystem::initFDT()
 {	
 	// Cleans any older data
 	if (m_rootDir != NULL)
+	{
 		delete m_rootDir;
+		m_rootDir = NULL;
+	}
 
 	if (CVolumeAccess::getInstance() == NULL)
 	{
-		_tprintf(_T("The device is not ready.."));
+		printf("The device is not ready..\n");
 		return false;
 	}
 	else
@@ -39,76 +43,81 @@ bool CFileSystem::initFDT()
 
 void CFileSystem::sort()
 {
-	_tprintf(_T("Sorting the files table..."));
+	printf("Sorting the files table...");
 	m_rootDir->sortEntries();
-	_tprintf(_T("DONE!\n"));
+	printf("DONE!\n");
 }
 
 void CFileSystem::flushDataToDevice()
 {
 	if (m_rootDir->writeData())
 	{
-		_tprintf(_T("Data flushed to device successfully!\n"));
+		printf("Data flushed to device successfully!\n");
 	}
 }
 
-void CFileSystem::exportFoldersList(TCHAR* aFileName)
+void CFileSystem::exportFoldersList(const char* aFileName)
 {
 	if (!initFDT())
 		return;
 
-	_tprintf(_T("Exporting Files list to %s\n"), aFileName);
+	printf("Exporting Files list to %s\n", aFileName);
 
 	// Resets the folders' counter
 	CFolderEntry::g_runningNum = 0;
 
-	FILE* exportFile;
-	_tfopen_s(&exportFile, aFileName, _T("w"));
-	_setmode(_fileno(exportFile), _O_U16TEXT);
-	_ftprintf(exportFile, _T("Exporting The drive's table to a tree-list:\n\n"));
-	TCHAR* rootName = m_rootDir->getName();
-	fwprintf_s(exportFile, L"%s\n", rootName);
+	FILE* exportFile = fopen(aFileName, "w");
+	if (exportFile == NULL)
+	{
+		printf("Could not open %s for writing.\n", aFileName);
+		return;
+	}
+
+	fprintf(exportFile, "Exporting The drive's table to a tree-list:\n\n");
+	WCHAR* rootName = m_rootDir->getName();
+	std::string rootNameUtf8 = wideToUtf8(rootName);
+	fprintf(exportFile, "%s\n", rootNameUtf8.c_str());
 	delete[] rootName;
 	m_rootDir->exportToFile(exportFile, 0);
 	fclose(exportFile);
-	_tprintf(_T("Files list saved to %s\n"), aFileName);
+	printf("Files list saved to %s\n", aFileName);
 }
 
-void CFileSystem::dumpFilesTable(TCHAR* aFileName)
+void CFileSystem::dumpFilesTable(const char* aFileName)
 {
 	if (!initFDT())
 		return;
 
-	_tprintf(_T("Saving backup of the files table..\n"));
+	printf("Saving backup of the files table..\n");
 		
 	if (m_rootDir == NULL)
 	{
-		_tprintf(_T("\nError! Tried to dump files table before loading it\n"));
+		printf("\nError! Tried to dump files table before loading it\n");
 	}
 	else
 	{
 		if (!m_rootDir->dumpDirTable(aFileName))
 		{
-			_tprintf(_T("Error encountered while backuping the table\n"));
+			printf("Error encountered while backing up the table\n");
 		}
 		else
 		{
-			_tprintf(_T("Backup Saved to file: %s!..\n"), aFileName);
+			printf("Backup saved to file: %s!..\n", aFileName);
 		}
 	}
 }
-void CFileSystem::loadFilesTable(TCHAR* aFileName)
+void CFileSystem::loadFilesTable(const char* aFileName)
 {
 	ifstream fatFile(aFileName, ios::binary|ios::in);
 	if (!fatFile.is_open())
 	{
-		_tprintf(_T("The file \"%s\" is not exist!"), aFileName);
+		printf("The file \"%s\" does not exist!", aFileName);
 		return;
 	}
 	if (!initFDT())
 		return;
 
-	_tprintf(_T("\nLoading into the device the files data from file: %s\n"), aFileName);
+	printf("\nLoading into the device the files data from file: %s\n", aFileName);
 	
 	bool isError = false;
 
@@ -128,17 +137,17 @@ void CFileSystem::loadFilesTable(TCHAR* aFileName)
 		BYTE* dataLoaded = new BYTE[sizeOfData];
 		fatFile.read((char*)dataLoaded, sizeOfData);
 
-		_tprintf(_T("Loading 0x%4X bytes, starting cluster number 0x%4X..."), sizeOfData, startClusterNum);
+		printf("Loading 0x%4X bytes, starting cluster number 0x%4X...", sizeOfData, startClusterNum);
 		
 		// Writing the data to the device
 		if (!CVolumeAccess::getInstance()->writeChainedClusters(startClusterNum, dataLoaded, sizeOfData))
 		{
-			_tprintf(_T("\nError loading data to the device. Error Code: 0x%2X. Cluster: 0x%4X\n"), GetLastError(), startClusterNum);
+			printf("\nError loading data to the device. Error Code: 0x%2lX. Cluster: 0x%4X\n", GetLastError(), startClusterNum);
 			isError = true;
 		}
 		else
 		{
-			_tprintf(_T("DONE!\n"));
+			printf("DONE!\n");
 			fatFile.read((char*)header, 16);
 		}
 
@@ -147,23 +156,23 @@ void CFileSystem::loadFilesTable(TCHAR* aFileName)
 
 	if (isError)
 	{
-		_tprintf(_T("Error while loading the table from the file\n"));
+		printf("Error while loading the table from the file\n");
 	}
 	else
 	{
-		_tprintf(_T("Table Loaded Successfully!\n"));
+		printf("Table loaded successfully!\n");
 	}
 }
 
-void CFileSystem::dumpFatsTable(TCHAR *aDestFolder)
+void CFileSystem::dumpFatsTable(const char* aDestFolder)
 {
 	CVolumeAccess::getInstance()->dumpFatsData(aDestFolder);
 }
-void CFileSystem::changeDriveLetter(TCHAR *aDriveLetter)
+void CFileSystem::changeDriveLetter(const char* aDriveLetter)
 {
 	CVolumeAccess::setWorkingDriveLetter(aDriveLetter);
 }
-TCHAR* CFileSystem::getCurrentDriveLetter()
+const char* CFileSystem::getCurrentDriveLetter()
 {
 	return CVolumeAccess::getWorkingDriveLetter();
 }

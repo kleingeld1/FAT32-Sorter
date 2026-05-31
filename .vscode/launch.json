@@ -1,0 +1,50 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug FAT32Sorter (macOS)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/FAT32Sorter",
+            "args": [
+                "${input:volumePath}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "CMake: build"
+        },
+        {
+            "name": "Debug FAT32Sorter (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/FAT32Sorter",
+            "args": [
+                "${input:volumePath}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "CMake: build"
+        },
+        {
+            "name": "Debug FAT32Sorter (Windows)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\Debug\\FAT32Sorter.exe",
+            "args": [
+                "${input:volumePath}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "CMake: build"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "volumePath",
+            "description": "FAT32 volume path, disk image, or Windows drive letter",
+            "default": "",
+            "type": "promptString"
+        }
+    ]
+}

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "CSpecialEntry.h"
 
 CSpecialEntry::CSpecialEntry(FATDirEntry aDirEntry)

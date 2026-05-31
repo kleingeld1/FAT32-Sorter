@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake: configure",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S",
+                "${workspaceFolder}",
+                "-B",
+                "${workspaceFolder}/build",
+                "-DCMAKE_BUILD_TYPE=Debug"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: build",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build"
+            ],
+            "dependsOn": "CMake: configure",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Run FAT32Sorter",
+            "type": "shell",
+            "command": "${workspaceFolder}/build/FAT32Sorter",
+            "windows": {
+                "command": "${workspaceFolder}\\build\\Debug\\FAT32Sorter.exe"
+            },
+            "args": [
+                "${input:volumePath}"
+            ],
+            "dependsOn": "CMake: build",
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "volumePath",
+            "description": "FAT32 volume path, disk image, or Windows drive letter",
+            "default": "",
+            "type": "promptString"
+        }
+    ]
+}

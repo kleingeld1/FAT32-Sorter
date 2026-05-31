@@ -38,7 +38,11 @@ struct FATBootSector
 class  CVolumeAccess
 {
 private:
+#if defined(_WIN32)
 	HANDLE			m_hDevice;
+#else
+	int				m_hDevice;
+#endif
 	DWORD			m_sectorSize;
 	FATBootSector	m_bootSector;
 	DWORD			m_clusterSizeBytes;
@@ -48,11 +52,11 @@ private:
 	// Static members
 	static const DWORD FAT_END_CHAIN = 0x0FFFFFFF;
 
-	static TCHAR*			s_driveLetter;
+	static char*			s_driveLetter;
 	static CVolumeAccess*	s_instance;
 
 	// Ctors
-	CVolumeAccess(TCHAR* aVolumeDriveLetter);
+	CVolumeAccess(const char* aVolumeDriveLetter);
 
 	// Member functions
 	bool lockAndDismount();
@@ -60,14 +64,18 @@ private:
 	void initData();
 	void readFatsData();
 
+	bool setDeviceOffset(unsigned long long aOffset);
+	bool readRawBytes(BYTE* aBuffer, DWORD aSizeOfData);
+	bool writeRawBytes(const BYTE* aBuffer, DWORD aSizeOfData);
 	bool goToSector(DWORD aSectorNum);
 	bool readBytesFromDeviceCluster(BYTE* aBuffer, DWORD aSizeOfData, DWORD aStartCluster);
 	bool readBytesFromDeviceSector(BYTE* aBuffer, DWORD aSizeOfData, DWORD aStartSector);
 	bool writeBytesToDeviceCluster(BYTE* aBuffer, DWORD aSizeOfData, DWORD aStartCluster);
 	bool writeBytesToDeviceSector(BYTE* aBuffer, DWORD aSizeOfData, DWORD aStartSector);
 	
-	void printData(byte* aData, long aSize);
-	void writeDataToFile(BYTE* aData, long aSize, TCHAR* aFileName);
+	bool isEndOfClusterChain(DWORD aClusterNum);
+	void printData(BYTE* aData, long aSize);
+	void writeDataToFile(BYTE* aData, long aSize, const char* aFileName);
 
 	// Clean resources
 	void clean();
@@ -79,11 +87,11 @@ public:
 	bool readChainedClusters(DWORD aStartClusterNum, BYTE* aoChainedClustersData, DWORD* aoSizeOfData);
 	bool writeChainedClusters(DWORD aStartClusterNum, BYTE* aiChainedClustersData, DWORD aSizeOfData);
 	
-	void dumpFatsData(TCHAR* aDestPath);
+	void dumpFatsData(const char* aDestPath);
 
 	// Static members
-	static void setWorkingDriveLetter(TCHAR* aDriveLetter);
-	static TCHAR* getWorkingDriveLetter();
+	static void setWorkingDriveLetter(const char* aDriveLetter);
+	static const char* getWorkingDriveLetter();
 	static CVolumeAccess* getInstance();
 	static void cleanResources();
 	// Ctors & Dtors

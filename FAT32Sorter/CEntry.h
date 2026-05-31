@@ -21,7 +21,7 @@ protected:
 	void setData(BYTE* aData);
 public:
 	CEntry(FATDirEntry aHexData, LFNEntry* aLFNEntries, WORD aNumLFNEntries);
-	~CEntry(void);
+	virtual ~CEntry(void);
 
 	bool isDeleted();
 	// Get a glance in the Hex data of the entry

@@ -9,6 +9,6 @@ public:
 	CRootFolder();
 	virtual DWORD	getFirstClusterInDataChain();
 	virtual WCHAR*	getName();
-	bool			dumpDirTable(TCHAR* aFileName);
+	bool			dumpDirTable(const char* aFileName);
 
 };

@@ -33,8 +33,7 @@ public:
 	bool writeData();
 	void sortEntries();
 	void exportToFile(FILE* aFileStream, int aCurrDepth);
-	~CFolderEntry(void);
+	virtual ~CFolderEntry(void);
 
 	static int g_runningNum;
 };
-
